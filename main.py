@@ -1,17 +1,15 @@
 import os
 from rcnn.test import rcnn_plant_detect
-# from semantic_sam import segment_plants
 from semantic_sam import segment_images
 
-rcnn_config_file = './rcnn/configs/config.yaml'
-rcnn_checkpoint = './rcnn/last.pt'
-datapath = './images'
-output_dir = './output'
+rcnn_config_file = './rcnn/configs/config.yaml' # configuration for rcnn plant detection
+rcnn_checkpoint = './rcnn/last.pt'              # rcnn checkpoint .pt file
+datapath = './images'                           # directory containing .png images
+output_dir = './output'                         # directory to output results to
+sam_checkpoint = './sam_base_checkpoint.pth'    # SAM checkpoint .pth file (using base model)
+
 os.makedirs(output_dir, exist_ok=True)
-
 bbox_output_dir = os.path.join(output_dir, 'plant_bboxes')
-
-sam_checkpoint = './sam_base_checkpoint.pth'
 semantic_segment_output_dir = os.path.join(output_dir, 'semantics')
 
 print("RCNN finding Bounding Boxes")
