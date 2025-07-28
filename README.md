@@ -10,3 +10,8 @@ Necessary changes are:
 
 Everything else can be adjusted, but should work.
 
+Run using:
+~~~sh
+python main.py
+~~~
+
