@@ -33,7 +33,7 @@ def load_image(image_path:Path) -> np.ndarray:
     return image
 
 # visualise the segmentations given an image and a mask
-def viualise_segmentations(mask:np.ndarray, image:np.ndarray, output_dir:str, image_name:str) -> None:
+def visualise_segmentations(mask:np.ndarray, image:np.ndarray, output_dir:str, image_name:str, save:bool=True) -> None:
     width, height = image.shape[:2]
 
     combined_mask = np.ma.masked_where(mask == 0, mask) # mask out the zero values
@@ -44,7 +44,11 @@ def viualise_segmentations(mask:np.ndarray, image:np.ndarray, output_dir:str, im
     plt.imshow(combined_mask, alpha=0.5, cmap='tab10')
     plt.axis("off")
     plt.tight_layout(pad=0)
-    plt.savefig(os.path.join(output_dir, image_name), bbox_inches='tight', pad_inches=0)
+
+    if save:
+        plt.savefig(os.path.join(output_dir, image_name), bbox_inches='tight', pad_inches=0)
+    else:
+        plt.show()
     plt.close()
 
 # segment all the plants in a given image return mask of segments
@@ -79,11 +83,11 @@ def segment_plants(image:np.ndarray, bbox_path:Path, predictor:SamPredictor) -> 
     return combined_mask # combined mask of all individual plant segmentations
 
 # segment images given bounding boxes
-def segment_images(data_path:str, bbox_path:str, output_dir:str, sam_checkpoint:str, visualise:bool=True) -> None:
+def segment_images(data_path:str, bbox_path:str, output_dir:str, sam_checkpoint:str, visualise:bool=True) -> np.ndarray:
     os.makedirs(output_dir, exist_ok=True)
     
     # === Load Sam Model ===
-    sam_checkpoint = './sam_base_checkpoint.pth'
+    # sam_checkpoint = './sam_base_checkpoint.pth'
     model_type = "vit_b"
     sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
 
@@ -103,6 +107,8 @@ def segment_images(data_path:str, bbox_path:str, output_dir:str, sam_checkpoint:
     # get the common stems
     common_stems = bbox_files.keys() & img_files.keys()
 
+    segmentation_masks = []
+
     # loop through the common files and segment them
     for stem in sorted(common_stems):
         bbox_dir = bbox_files[stem]
@@ -113,14 +119,22 @@ def segment_images(data_path:str, bbox_path:str, output_dir:str, sam_checkpoint:
 
         # === segment the image ===
         segmentation_mask = segment_plants(image, bbox_dir, predictor)
+        segmentation_masks.append((segmentation_mask, img_path))
 
         if visualise:
             # === visualise the segmentations and save them as a png ===
-            viualise_segmentations(segmentation_mask, image, output_dir, stem)
+            visualise_segmentations(segmentation_mask, image, output_dir, stem)
+
+    if visualise:
+        print("Segmentation Visuals Saved to {}".format(output_dir))
+    else:
+        print("Segmentation Complete")
 
     # === Clean up ===
     del predictor
     del sam
     torch.cuda.empty_cache()
     gc.collect()
+
+    return np.array(segmentation_masks)
 

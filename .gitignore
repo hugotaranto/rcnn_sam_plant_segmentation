@@ -8,3 +8,8 @@ __pycache__
 checkpoints
 tensorboard
 images
+.ipynb*
+single
+their_single
+*.png
+*.pth
