@@ -9,3 +9,7 @@ checkpoints
 tensorboard
 images
 single
+their_single
+temp_img.png
+*.pth
+
