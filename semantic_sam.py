@@ -54,12 +54,9 @@ def visualise_segmentations(mask:np.ndarray, image:np.ndarray, output_dir:str, i
     plt.close()
 
 # segment all the plants in a given image return mask of segments
-def segment_plants(image:np.ndarray, bbox_path:Path, predictor:SamPredictor) -> np.ndarray:
+def segment_plants(image:np.ndarray, bboxes:np.ndarray, predictor:SamPredictor) -> np.ndarray:
 
     height, width = image.shape[:2]
-
-    # === Load the bboxes ===
-    bboxes = get_sam_bounding_boxes(bbox_path, height)
 
     # === Set Predictor ===
     predictor.set_image(image)      # Load the image into the predictor
@@ -78,7 +75,7 @@ def segment_plants(image:np.ndarray, bbox_path:Path, predictor:SamPredictor) -> 
     torch.cuda.empty_cache()
 
     # === combine the masks ===
-    combined_mask = np.zeros_like(masks[0], dtype=np.uint8)
+    combined_mask = np.zeros((height, width), dtype=np.uint8)
     for i, mask in enumerate(masks, 1):
         combined_mask[mask] = i
 
@@ -120,8 +117,11 @@ def segment_images_dir(data_path:str, bbox_path:str, output_dir:str, sam_checkpo
         # === Load the image ===
         image = load_image(img_path)
 
+        # === Load the bboxes ===
+        bboxes = get_sam_bounding_boxes(bbox_dir, image.shape[0])
+
         # === segment the image ===
-        segmentation_mask = segment_plants(image, bbox_dir, predictor)
+        segmentation_mask = segment_plants(image, bboxes, predictor)
         # segmentation_masks.append((segmentation_mask, img_path))
         segmentation_masks.append(segmentation_mask)
         image_paths.append(img_path)
@@ -142,7 +142,6 @@ def segment_images_dir(data_path:str, bbox_path:str, output_dir:str, sam_checkpo
     gc.collect()
 
     return np.array(segmentation_masks), np.array(image_paths)
-
 
 def segment_images(images:np.ndarray, bboxes:np.ndarray, output_dir:str, sam_checkpoint:str, visualise:bool=True, image_names=None) -> np.ndarray:
     os.makedirs(output_dir, exist_ok=True)

@@ -66,7 +66,8 @@ def rcnn_plant_detect_dir(config, ckpt_file, out, datapath):
                     np.savetxt(fname_box, pred_cls_box_score, fmt='%f')
 
 
-def rcnn_plant_detect(config, ckpt_file, out, images):
+def rcnn_plant_detect(config, ckpt_file, images):
+
     cfg = yaml.safe_load(open(config))
 
     val_dataset = PlantsImages(images=images, overfit=cfg['train']['overfit'])
@@ -76,10 +77,6 @@ def rcnn_plant_detect(config, ckpt_file, out, images):
     weights = torch.load(ckpt_file)["model_state_dict"]
     model.load_state_dict(weights)
     
-    # os.makedirs(out, exist_ok=True)
-    # os.makedirs(os.path.join(out,'plant_bboxes/'), exist_ok=True)
-    os.makedirs(out, exist_ok=True)
-
     bboxes = []
 
     with torch.autograd.set_detect_anomaly(True):
@@ -88,21 +85,11 @@ def rcnn_plant_detect(config, ckpt_file, out, images):
         for idx, item in enumerate(iter(val_loader)):
             with torch.no_grad():
 
-                size = item['image'][0].shape[1]
                 predictions = model.inference_test_step(item)
 
                 res_names = item['name']
                 for i in range(len(res_names)):
-                    fname_box = os.path.join(out, res_names[i].replace('png','txt'))
-
-                    size = item['image'][i].shape[1] # scales by the height!!!
-                    scores = predictions[i]['scores'].cpu().numpy()
-                    labels = predictions[i]['labels'].cpu().numpy()
                     boxes_ = predictions[i]['boxes'].cpu().numpy()
-                    num_pred = len(boxes_)
-
                     bboxes.append(boxes_)
 
     return np.array(bboxes)
-
-

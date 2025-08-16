@@ -128,9 +128,8 @@ class PlantsImages(PlantsBaseImages):
     # @cache.memoize(typed=True)
     def __getitem__(self, index):
         sample = self.get_inference_sample(index)
-        image = (sample['images']/255).float()
         maskrcnn_input = {}
-        maskrcnn_input['image'] = image
+        maskrcnn_input['image'] = torch.from_numpy(sample['images'])
         maskrcnn_input['name'] = sample['image_name']
 
         return maskrcnn_input
