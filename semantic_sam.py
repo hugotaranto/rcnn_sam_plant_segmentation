@@ -8,6 +8,8 @@ from pathlib import Path
 import os
 import gc
 
+from typing import Tuple
+
 DPI = 100 # dots per inch for matplot
 
 # creates an array of all of the bounding boxes in format [[x_min, y_min, x_max, y_max]]
@@ -83,11 +85,11 @@ def segment_plants(image:np.ndarray, bbox_path:Path, predictor:SamPredictor) -> 
     return combined_mask # combined mask of all individual plant segmentations
 
 # segment images given bounding boxes
-def segment_images(data_path:str, bbox_path:str, output_dir:str, sam_checkpoint:str, visualise:bool=True) -> np.ndarray:
+def segment_images_dir(data_path:str, bbox_path:str, output_dir:str, sam_checkpoint:str, visualise:bool=True) -> Tuple[np.ndarray, np.ndarray]:
     os.makedirs(output_dir, exist_ok=True)
     
     # === Load Sam Model ===
-    # sam_checkpoint = './sam_base_checkpoint.pth'
+# sam_checkpoint = './sam_base_checkpoint.pth'
     model_type = "vit_b"
     sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
 
@@ -108,6 +110,7 @@ def segment_images(data_path:str, bbox_path:str, output_dir:str, sam_checkpoint:
     common_stems = bbox_files.keys() & img_files.keys()
 
     segmentation_masks = []
+    image_paths = []
 
     # loop through the common files and segment them
     for stem in sorted(common_stems):
@@ -119,7 +122,9 @@ def segment_images(data_path:str, bbox_path:str, output_dir:str, sam_checkpoint:
 
         # === segment the image ===
         segmentation_mask = segment_plants(image, bbox_dir, predictor)
-        segmentation_masks.append((segmentation_mask, img_path))
+        # segmentation_masks.append((segmentation_mask, img_path))
+        segmentation_masks.append(segmentation_mask)
+        image_paths.append(img_path)
 
         if visualise:
             # === visualise the segmentations and save them as a png ===
@@ -136,5 +141,49 @@ def segment_images(data_path:str, bbox_path:str, output_dir:str, sam_checkpoint:
     torch.cuda.empty_cache()
     gc.collect()
 
+    return np.array(segmentation_masks), np.array(image_paths)
+
+
+def segment_images(images:np.ndarray, bboxes:np.ndarray, output_dir:str, sam_checkpoint:str, visualise:bool=True, image_names=None) -> np.ndarray:
+    os.makedirs(output_dir, exist_ok=True)
+
+    # === Load the SAM Model ===
+    model_type = "vit_b"
+    sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+
+    device = "cpu"
+    if torch.cuda.is_available():
+        device = "cuda"
+
+    print("Device:", device)
+
+    sam.to(device)
+    predictor = SamPredictor(sam)
+
+    segmentation_masks = []
+
+    # === Loop through and Segment images ===
+    for i in range(len(images)):
+        segmentation_mask = segment_plants(images[i], bboxes[i], predictor)
+        segmentation_masks.append(segmentation_mask)
+
+        if visualise:
+            # visualise_segmentations(segmentation_mask, image, output_dir,)
+            if image_names == None:
+                visualise_segmentations(segmentation_mask, images[i], output_dir, str(i) + "png")
+            else:
+                visualise_segmentations(segmentation_mask, images[i], output_dir, image_names[i])
+
+    if visualise:
+        print("Segmentation Visuals Saved to {}".format(output_dir))
+    else:
+        print("Segmentation Complete")
+        
+    # === Clean up ===
+    del predictor
+    del sam
+    torch.cuda.empty_cache()
+    gc.collect()
+    
     return np.array(segmentation_masks)
 

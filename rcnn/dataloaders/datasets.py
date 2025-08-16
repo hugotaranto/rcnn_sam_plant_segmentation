@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import copy
 
 # from dataloaders.pdc_base import PlantsBase
-from ..dataloaders.pdc_base import PlantsBase
+from ..dataloaders.pdc_base import PlantsBase, PlantsBaseImages
 
 
 def collate_pdc(items):
@@ -118,3 +118,20 @@ class Plants(PlantsBase):
         maskrcnn_input['targets']['boxes'] = boxes
         
         return maskrcnn_input
+
+
+class PlantsImages(PlantsBaseImages):
+    def __init__(self, images, overfit=False, area_threshold=50, cfg=None, is_train=False):
+        super().__init__(images, overfit, cfg, is_train)
+        self.area_threshold = area_threshold
+
+    # @cache.memoize(typed=True)
+    def __getitem__(self, index):
+        sample = self.get_inference_sample(index)
+        image = (sample['images']/255).float()
+        maskrcnn_input = {}
+        maskrcnn_input['image'] = image
+        maskrcnn_input['name'] = sample['image_name']
+
+        return maskrcnn_input
+

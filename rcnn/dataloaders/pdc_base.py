@@ -4,6 +4,51 @@ import cv2
 import os
 from tqdm import tqdm
 
+class PlantsBaseImages(Dataset):
+
+    def __init__(self, images, overfit=False, cfg=None, is_train=False):
+        super().__init__()
+
+        # self.data_path = data_path
+        self.images = images
+        self.overfit = overfit
+
+        # self.len = len(self.image_list)
+        self.len = len(images)
+
+        self.field_list = os.listdir(self.data_path)
+
+    @staticmethod
+    def load_one_data(data_path, image_list, field_list, idx):
+        data_frame = {}
+        for field in field_list:
+            image = image_list[idx]
+            # so basically all of the different fields are loaded here
+            image = cv2.imread(
+                os.path.join(os.path.join(data_path, field), image),
+                cv2.IMREAD_UNCHANGED,
+            )
+
+            if len(image.shape) > 2:
+                sample = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                sample = torch.tensor(sample).permute(2, 0, 1)
+            else:
+                sample = torch.tensor(image.astype("int16"))
+
+            data_frame[field] = sample
+        return data_frame
+
+    def get_inference_sample(self, index):
+        sample = {}
+        sample["images"] = self.images[index]
+        sample["image_name"] = str(index) + ".png"
+        return sample
+
+    def __len__(self):
+        if self.overfit:
+            return 12
+        return self.len
+
 class PlantsBase(Dataset):
     def __init__(self, data_path, overfit=False, cfg=None, is_train=False):
         super().__init__()
