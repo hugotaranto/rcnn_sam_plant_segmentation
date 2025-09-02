@@ -20,3 +20,12 @@ print("Segmenting with Sam")
 segment_images_dir(datapath, bbox_output_dir, semantic_segment_output_dir, sam_checkpoint)
 print("Visuals saved to {}".format(semantic_segment_output_dir))
 
+
+
+# uncomment for leaf stuff
+# datapath = '../phenobench/image_test/resized_images'
+# leaf_bbox_path = '../phenobench/phenobench-baselines/leaf_detection/yolov7/src/runs/detect/exp9/labels'
+#
+# print("Segmenting with Sam")
+# segment_images_dir(datapath, leaf_bbox_path, semantic_segment_output_dir, sam_checkpoint)
+# print("Visuals saved to {}".format(semantic_segment_output_dir))
